@@ -1,5 +1,5 @@
 from typing import Optional
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 class EnderecoIn(BaseModel):
     cep:str
     endereco: str
@@ -35,11 +35,11 @@ class AlunoUpdateIn(BaseModel):
     email: Optional[str] = None
     endereco_id: Optional[int] = None
 
-class AlunoIn(BaseModel):
-    matricula: str
-    nome_aluno: str
-    email: str
-    endereco_id: int
+    class AlunoIn(BaseModel):
+        matricula: str
+        nome_aluno: str
+        email: str
+        endereco_id: int
 
 
 #schema de entrada para tb notas
@@ -53,3 +53,30 @@ class NotaUpdateIn(BaseModel):
     nome_id: Optional[int] = None
     disciplina_id: Optional[int] = None
     nota: Optional[float] = None
+
+
+class AlunoOut(AlunoIn):
+    model_config = ConfigDict(from_attributes=True)
+    id: int
+
+
+class EnderecoOut(EnderecoIn):
+    model_config = ConfigDict(from_attributes=True)
+    id: int
+
+
+class DisciplinaOut(DisciplinaIn):
+    model_config = ConfigDict(from_attributes=True)
+    id: int
+
+
+class NotaOut(NotaIn):
+    model_config = ConfigDict(from_attributes=True)
+    id: int
+
+
+class AlunoCepIn(BaseModel):
+    matricula: str
+    nome_aluno: str
+    email: str
+    cep: str

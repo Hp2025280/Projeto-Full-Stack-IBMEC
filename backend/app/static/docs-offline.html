@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="pt-BR">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Consulta e teste offline da API</title>
+<style>
+body {font: 16px system-ui; max-width: 920px; margin: 2rem auto; padding: 0 1rem; line-height: 1.5}
+label {display: block; margin-top: 1rem} select, input, textarea, button {font: inherit; padding: .5rem; box-sizing: border-box}
+select, textarea {width: 100%} textarea, pre {font-family: monospace} pre {white-space: pre-wrap; overflow-wrap: anywhere; background: #eee; padding: 1rem}
+button {margin-top: 1rem} small {display: block}
+</style>
+<h1>API: consulta e teste offline</h1>
+<p>Esta página usa apenas arquivos locais e o <a href="/openapi.json">OpenAPI da API</a>.
+O <a href="/docs">Swagger em /docs</a> depende de arquivos externos se eles não estiverem no cache.</p>
+<p>As requisições abaixo usam o banco configurado no servidor. Para praticar, use um banco separado.
+Cadastre na ordem: endereço → aluno; disciplina → nota. Ao excluir, remova primeiro a nota, depois aluno, disciplina e endereço, usando somente IDs dos seus testes.</p>
+<label for="operacao">Operação</label><select id="operacao"></select>
+<label for="identificador">ID (para caminhos com {id})</label><input id="identificador" type="number" min="1" value="1">
+<label for="corpo">JSON do corpo</label><textarea id="corpo" rows="12" spellcheck="false"></textarea>
+<small id="campos"></small>
+<button id="executar" type="button">Executar requisição</button>
+<pre id="resultado" aria-live="polite">Carregando OpenAPI local…</pre>
+<script>
+const operacao = document.getElementById('operacao');
+const corpo = document.getElementById('corpo');
+const resultado = document.getElementById('resultado');
+let spec, operacoes = [];
+function resolver(schema) {
+  return schema?.$ref ? spec.components.schemas[schema.$ref.split('/').pop()] : schema;
+}
+function exemplo(schema) {
+  schema = resolver(schema);
+  if (schema.anyOf) return exemplo(schema.anyOf.find(s => s.type !== 'null'));
+  if (schema.type === 'object') return Object.fromEntries(Object.entries(schema.properties || {}).map(([k, v]) => [k, ({cep: '00000-001', endereco: 'Rua de Teste', bairro: 'Centro', cidade: 'Rio de Janeiro', estado: 'RJ', regiao: 'Sudeste', matricula: 'PROVA01', nome_aluno: 'Aluno de Teste', email: 'teste@example.invalid', nome_disciplina: 'Projetos II', carga: '80', semestre: '2026.2'})[k] ?? exemplo(v)]));
+  if (schema.type === 'integer') return 1;
+  if (schema.type === 'number') return 8.5;
+  return 'texto';
+}
+function selecionar() {
+  const {method, definition} = operacoes[operacao.selectedIndex];
+  const schema = resolver(definition.requestBody?.content?.['application/json']?.schema);
+  corpo.disabled = !schema;
+  corpo.value = schema ? JSON.stringify(exemplo(schema), null, 2) : '';
+  document.getElementById('campos').textContent = schema ? `Campos obrigatórios: ${(schema.required || []).join(', ') || 'nenhum; envie somente os que deseja atualizar'}. Ajuste os exemplos e as FKs antes de executar.` : 'Sem corpo JSON.';
+  document.getElementById('executar').textContent = `Executar ${method.toUpperCase()}`;
+}
+document.getElementById('executar').addEventListener('click', async () => {
+  const {path, method} = operacoes[operacao.selectedIndex];
+  const url = path.replace('{id}', encodeURIComponent(document.getElementById('identificador').value));
+  try {
+    const options = {method: method.toUpperCase()};
+    if (!corpo.disabled) {options.headers = {'Content-Type': 'application/json'}; options.body = JSON.stringify(JSON.parse(corpo.value));}
+    const response = await fetch(url, options);
+    const text = await response.text();
+    let payload;
+    try {payload = JSON.stringify(JSON.parse(text), null, 2);} catch {payload = text;}
+    resultado.textContent = `${options.method} ${url}\nHTTP ${response.status}\n${payload}`;
+  } catch (error) {resultado.textContent = String(error);}
+});
+fetch('/openapi.json').then(response => {if (!response.ok) throw Error('Falha ao carregar OpenAPI'); return response.json();}).then(data => {
+  spec = data;
+  for (const [path, methods] of Object.entries(spec.paths)) {
+    for (const [method, definition] of Object.entries(methods)) {
+      if (!['get', 'post', 'put', 'delete'].includes(method)) continue;
+      operacoes.push({path, method, definition});
+      const option = document.createElement('option'); option.textContent = `${method.toUpperCase()} ${path}`; operacao.append(option);
+    }
+  }
+  operacao.addEventListener('change', selecionar); selecionar(); resultado.textContent = 'Pronto. Escolha uma operação.';
+}).catch(error => {resultado.textContent = String(error); document.getElementById('executar').disabled = true;});
+</script>
+</html>

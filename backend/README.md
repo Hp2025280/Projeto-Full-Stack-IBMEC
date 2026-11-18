@@ -29,3 +29,20 @@ com o ambiente virtual ja ativado rode uvicorn app.main:app --reload
 ## 6. Postman
 
 popule o db com o postman e teste todas as rotas da API
+
+## Consulta para a avaliação sem internet
+
+- [GUIA_PROVA_OFFLINE.md](GUIA_PROVA_OFFLINE.md): conceitos, código real, comandos e roteiro de prática.
+- [RELATORIO_CHECKLIST.md](RELATORIO_CHECKLIST.md): auditoria, testes executados e pendências.
+- Com o servidor iniciado, abra `http://127.0.0.1:8000/docs-offline` para testar sem CDN.
+
+Dentro de `backend`, usando o ambiente já preparado:
+
+```bash
+uv run --offline --no-sync python tests/verificar_backend.py --postgres
+uv run --offline --no-sync uvicorn app.main:app --reload
+```
+
+O teste PostgreSQL usa schema isolado em transação e reverte tudo ao final;
+precisa de permissão para criar schema. Sem PostgreSQL, omita `--postgres` para
+usar SQLite em memória, que não comprova migrações nem funcionamento em PostgreSQL.

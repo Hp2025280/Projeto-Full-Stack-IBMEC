@@ -1,8 +1,9 @@
 from dotenv import load_dotenv
 import os
-from sqlalchemy import create_engine
+from pathlib import Path
+from sqlalchemy import URL, create_engine
 from sqlalchemy.orm import DeclarativeBase, sessionmaker
-load_dotenv()
+load_dotenv(Path(__file__).resolve().parents[1] / ".env")
 
 # Parametros da configuracao da conexao
 user = os.getenv('user')
@@ -12,10 +13,13 @@ port = os.getenv('port')
 banco = os.getenv('banco')
 
 # Conexao
-DATABASE_URL = f'postgresql+psycopg://{user}:{senha}@{host}:{port}/{banco}'
+DATABASE_URL = URL.create(
+    "postgresql+psycopg", username=user, password=senha,
+    host=host, port=int(port) if port else None, database=banco
+)
 
-# enginde de conexao com o db
-engine = create_engine(DATABASE_URL)
+# engine de conexao com o db
+engine = create_engine(DATABASE_URL, connect_args={"connect_timeout": 5})
 
 # configuracao de sessao
 SessionLocal = sessionmaker(bind=engine)
