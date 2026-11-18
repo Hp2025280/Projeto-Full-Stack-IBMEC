@@ -29,17 +29,21 @@ class DisciplinaUpdateIn(BaseModel):
     semestre: Optional[str] = None
 
 #schema de entrada para tb alunos
+
+# Schema de entrada para tb alunos
+class AlunoIn(BaseModel):
+    matricula: str
+    nome_aluno: str
+    email: str
+    endereco_id: int
+
+
 class AlunoUpdateIn(BaseModel):
     matricula: Optional[str] = None
     nome_aluno: Optional[str] = None
     email: Optional[str] = None
     endereco_id: Optional[int] = None
 
-    class AlunoIn(BaseModel):
-        matricula: str
-        nome_aluno: str
-        email: str
-        endereco_id: int
 
 
 #schema de entrada para tb notas
